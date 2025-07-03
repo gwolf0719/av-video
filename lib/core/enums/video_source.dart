@@ -17,9 +17,9 @@ enum VideoSource {
   String get baseUrl {
     switch (this) {
       case VideoSource.anime:
-        return 'https://18av.mm-cg.com';
+        return 'https://18av.mm-cg.com/zh/CensoredAnimation_list/all/';
       case VideoSource.limit1:
-        return 'https://limit1.example.com';
+        return 'https://18av.mm-cg.com/zh/content_news/all/';
       case VideoSource.chinese1:
         return 'https://chinese1.example.com';
     }

@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:html/parser.dart' as html_parser;
+// 導入 html/dom.dart 以便使用 Element 類型，雖然在此範例中不直接用到，但良好習慣
+// import 'package:html/dom.dart'; 
 
 import '../models/video_model.dart';
 import '../../core/enums/video_source.dart';
@@ -17,28 +20,30 @@ class VideoRemoteDataSourceImpl implements VideoRemoteDataSource {
   
   @override
   Future<List<VideoModel>> getVideosBySource(VideoSource source, int page) async {
+    // 爲了避免 chinese1.example.com 報錯，我們先對它做特殊處理返回空列表
+    if (source == VideoSource.chinese1) {
+      print('Chinese1 source is not implemented yet, returning empty list.');
+      return [];
+    }
+
+    // 建立目標 URL
+    final targetUrl = '${source.baseUrl}$page.html';
+    
     try {
-      // 模擬資料，實際實作時會根據不同source進行網路請求和解析
-      final List<VideoModel> mockVideos = List.generate(20, (index) {
-        return VideoModel(
-          id: 'video_${source.name}_${page}_$index',
-          title: '示例影片 ${index + 1} - ${source.displayName}',
-          thumbnail: 'https://via.placeholder.com/320x180?text=Video+${index + 1}',
-          description: '這是來自${source.displayName}的示例影片描述',
-          durationInSeconds: 1800 + (index * 120), // 30分鐘加上變化
-          tags: ['標籤1', '標籤2', '${source.name}'],
-          source: source,
-          publishDate: DateTime.now().subtract(Duration(days: index)),
-        );
-      });
+      // 1. 發起網路請求取得 HTML
+      final response = await dio.get(targetUrl);
       
-      // 模擬網路延遲
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      return mockVideos;
+      if (response.statusCode == 200) {
+        // 2. 使用共用的解析器來解析 HTML
+        return _parseVideoList(response.data, source);
+      } else {
+        throw ServerException('Failed to load videos: ${response.statusCode}');
+      }
     } on DioException catch (e) {
+      // 處理 Dio 的錯誤，例如超時、無網路等
       throw ServerException('Network error: ${e.message}');
     } catch (e) {
+      // 處理其他所有錯誤，包括解析錯誤
       throw ParsingException('Failed to parse video list: $e');
     }
   }
@@ -87,4 +92,66 @@ class VideoRemoteDataSourceImpl implements VideoRemoteDataSource {
       throw ParsingException('Failed to parse video detail: $e');
     }
   }
-} 
+
+  // 3. 實作共用的解析方法 (爬蟲規則)
+  List<VideoModel> _parseVideoList(String htmlContent, VideoSource source) {
+  final document = html_parser.parse(htmlContent);
+  final videoElements = document.querySelectorAll('div.post');
+  final List<VideoModel> videos = [];
+
+  for (final element in videoElements) {
+    try {
+      final aTag = element.querySelector('h3 > a');
+      final videoPageUrl = aTag?.attributes['href'] ?? '';
+      final title = aTag?.text.trim() ?? '未知標題';
+      
+      final imgTag = element.querySelector('figure > a > img');
+      final thumbnailUrl = imgTag?.attributes['src'] ?? '';
+      
+      final metaTag = element.querySelector('div.meta');
+      final date = metaTag?.text.trim() ?? '';
+      
+      // *** 修正 ID 提取邏輯 ***
+      // 從 "https://.../55749/content.html" 中提取 "55749"
+      final urlParts = videoPageUrl.split('/').where((s) => s.isNotEmpty).toList();
+      final id = urlParts.length > 1 ? urlParts[urlParts.length - 2] : videoPageUrl;
+
+      videos.add(
+        VideoModel(
+          id: id, // 使用修正後的唯一 ID
+          title: title,
+          thumbnail: thumbnailUrl,
+          description: title,
+          durationInSeconds: 0,
+          tags: [source.displayName],
+          source: source,
+          playUrl: videoPageUrl,
+          publishDate: DateTime.tryParse(date.replaceAll('/', '-')) ?? DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      print('Error parsing a video element: $e');
+    }
+  }
+  
+  // 驗證 log，確認 videos 是否有內容
+  print('Parsed ${videos.length} videos from source: ${source.name}'); 
+  print(videos);
+  return videos;
+}
+
+  // 輔助方法：將 "HH:mm:ss" 或 "mm:ss" 格式的字串轉為秒數
+  int _parseDuration(String durationStr) {
+    try {
+      final parts = durationStr.split(':').map((e) => int.tryParse(e) ?? 0).toList();
+      if (parts.length == 3) { // HH:mm:ss
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      } else if (parts.length == 2) { // mm:ss
+        return parts[0] * 60 + parts[1];
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+}

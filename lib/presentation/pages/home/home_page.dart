@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/enums/video_source.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../domain/entities/video_entity.dart';
 import '../../blocs/video/video_bloc.dart';
 import '../../blocs/navigation/navigation_bloc.dart';
 import '../../widgets/video_grid_item.dart';
@@ -112,19 +113,32 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: BlocBuilder<VideoBloc, VideoState>(
                   builder: (context, videoState) {
+                    print('videoState: $videoState');
+                    // 1. 如果正在載入，顯示載入中
                     if (videoState is VideoLoading) {
                       return const LoadingWidget();
-                    } else if (videoState is VideoError) {
+                    } 
+                    // 2. 如果載入失敗，顯示錯誤訊息
+                    else if (videoState is VideoError) {
                       return CustomErrorWidget(
                         message: videoState.message,
                         onRetry: _loadVideos,
                       );
-                    } else if (videoState is VideoLoaded) {
+                    }
+                    // 3. 如果載入成功，顯示影片網格
+                    else if (videoState is VideoLoaded) {
+                      // 加一個判斷，如果影片列表是空的，就顯示提示
+                      if (videoState.videos.isEmpty) {
+                        return const Center(child: Text('此分類目前沒有影片。'));
+                      }
+                      // 如果有影片，就用 _buildVideoGrid 把它們畫出來
                       return RefreshIndicator(
                         onRefresh: () async => _loadVideos(),
                         child: _buildVideoGrid(videoState.videos),
                       );
-                    } else {
+                    } 
+                    // 4. 如果載入成功，顯示影片網格
+                    else {
                       return const Center(
                         child: Text('開始載入影片...'),
                       );
@@ -139,31 +153,34 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildVideoGrid(List<dynamic> videos) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: GridThemeData.crossAxisCount, // 一行5個
-          childAspectRatio: GridThemeData.childAspectRatio,
-          crossAxisSpacing: GridThemeData.spacing,
-          mainAxisSpacing: GridThemeData.runSpacing,
-        ),
-        itemCount: videos.length,
-        itemBuilder: (context, index) {
-          return VideoGridItem(
-            video: videos[index],
-            onTap: () {
-              context.go('/player', extra: {
-                'videoUrl': 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
-                'videoTitle': '示例影片 ${index + 1}',
-              });
-            },
-          );
-        },
+  Widget _buildVideoGrid(List<VideoEntity> videos) {
+  return Padding(
+    padding: const EdgeInsets.all(8.0),
+    child: GridView.builder(
+      // key: PageStorageKey<String>('video_grid_${_getCurrentSource(context.read<NavigationBloc>().state)}'),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 5, 
+        childAspectRatio: 0.7,
+        crossAxisSpacing: 8.0,
+        mainAxisSpacing: 8.0,
       ),
-    );
-  }
+      itemCount: videos.length, // 這裡的長度就是您 Log 中看到的 24
+      itemBuilder: (context, index) {
+        final video = videos[index];
+        return VideoGridItem(
+          // 使用 VideoEntity 的屬性來傳遞資料
+          video: video, // 確保 video 物件被正確傳遞
+          onTap: () {
+            context.go('/player', extra: {
+              'videoUrl': video.playUrl ?? '', // 使用從 video 物件中獲取到的 URL
+              'videoTitle': video.title,
+            });
+          },
+        );
+      },
+    ),
+  );
+}
 
   VideoSource _getCurrentSource(NavigationState state) {
     if (state is NavigationUpdated) {

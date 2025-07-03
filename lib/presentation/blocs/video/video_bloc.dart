@@ -32,10 +32,13 @@ class VideoBloc extends Bloc<VideoEvent, VideoState> {
     VideoSource source,
     int page,
   ) async {
+      // 1. BLoC 會先發出 "載入中" 的狀態
     emit(const VideoState.loading());
     
+    // 2. 呼叫 getVideosUseCase 取得影片資料
     final result = await getVideosUseCase(source, page);
     
+    // 3. 處理結果
     result.fold(
       (failure) => emit(VideoState.error(_mapFailureToMessage(failure))),
       (videos) => emit(VideoState.loaded(
@@ -51,10 +54,13 @@ class VideoBloc extends Bloc<VideoEvent, VideoState> {
     Emitter<VideoState> emit,
     VideoSource source,
   ) async {
+    // 1. BLoC 會先發出 "載入中" 的狀態
     emit(const VideoState.loading());
     
+    // 2. 呼叫 getVideosUseCase 取得影片資料
     final result = await getVideosUseCase(source, 1);
     
+    // 3. 處理結果
     result.fold(
       (failure) => emit(VideoState.error(_mapFailureToMessage(failure))),
       (videos) => emit(VideoState.loaded(
