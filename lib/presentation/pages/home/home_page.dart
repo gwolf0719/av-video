@@ -79,7 +79,7 @@ class _HomePageState extends State<HomePage> {
                                 .map((source) => Padding(
                                       padding: const EdgeInsets.only(right: 8),
                                       child: ChoiceChip(
-                                        label: Text(_getSourceName(source)),
+                                        label: Text(source.displayName),
                                         selected: _getCurrentSource(navigationState) == source,
                                         onSelected: (selected) {
                                           if (selected) {
@@ -90,9 +90,11 @@ class _HomePageState extends State<HomePage> {
                                           }
                                         },
                                         avatar: Icon(
-                                          _getSourceIcon(source),
+                                          source.icon,
                                           size: 18,
                                         ),
+                                        selectedColor: source.primaryColor?.withOpacity(0.3),
+                                        backgroundColor: Colors.grey.withOpacity(0.1),
                                       ),
                                     ))
                                 .toList(),
@@ -172,7 +174,8 @@ class _HomePageState extends State<HomePage> {
           video: video, // 確保 video 物件被正確傳遞
           onTap: () {
             context.go('/player', extra: {
-              'videoUrl': video.playUrl ?? '', // 使用從 video 物件中獲取到的 URL
+              'videoId': video.id, // 傳遞影片ID
+              'videoSource': video.source, // 傳遞影片來源
               'videoTitle': video.title,
             });
           },
@@ -193,27 +196,5 @@ class _HomePageState extends State<HomePage> {
 
   bool _isLoading(NavigationState state) {
     return state is NavigationUpdated && state.isLoading;
-  }
-
-  String _getSourceName(VideoSource source) {
-    switch (source) {
-      case VideoSource.anime:
-        return '動畫頁籤';
-      case VideoSource.limit1:
-        return 'LIMIT1中文字幕';
-      case VideoSource.chinese1:
-        return '中文1中文字幕';
-    }
-  }
-
-  IconData _getSourceIcon(VideoSource source) {
-    switch (source) {
-      case VideoSource.anime:
-        return Icons.animation;
-      case VideoSource.limit1:
-        return Icons.subtitles;
-      case VideoSource.chinese1:
-        return Icons.closed_caption;
-    }
   }
 } 

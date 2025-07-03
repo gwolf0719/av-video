@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../presentation/pages/home/home_page.dart';
 import '../../presentation/pages/player/player_page.dart';
 import '../../presentation/pages/settings/settings_page.dart';
+import '../enums/video_source.dart';
 
 class AppRouter {
   static const String homePath = '/';
@@ -24,7 +25,8 @@ class AppRouter {
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
           return PlayerPage(
-            videoUrl: extra?['videoUrl'] ?? '',
+            videoId: extra?['videoId'] ?? '',
+            videoSource: extra?['videoSource'] ?? VideoSource.anime,
             videoTitle: extra?['videoTitle'] ?? '',
           );
         },

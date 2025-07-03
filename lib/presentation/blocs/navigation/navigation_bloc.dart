@@ -148,16 +148,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     }
   }
 
-  // 獲取資料源名稱的輔助方法
+  // 獲取資料源的顯示名稱
   String getSourceDisplayName(VideoSource source) {
-    switch (source) {
-      case VideoSource.anime:
-        return '動畫頁籤';
-      case VideoSource.limit1:
-        return 'LIMIT1中文字幕';
-      case VideoSource.chinese1:
-        return '中文1中文字幕';
-    }
+    return source.displayName;
   }
 
   // 獲取當前選中的資料源

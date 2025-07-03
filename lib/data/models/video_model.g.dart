@@ -37,7 +37,6 @@ Map<String, dynamic> _$$VideoModelImplToJson(_$VideoModelImpl instance) =>
 const _$VideoSourceEnumMap = {
   VideoSource.anime: 'anime',
   VideoSource.limit1: 'limit1',
-  VideoSource.chinese1: 'chinese1',
 };
 
 _$VideoDetailModelImpl _$$VideoDetailModelImplFromJson(

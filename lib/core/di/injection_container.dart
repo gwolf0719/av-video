@@ -71,7 +71,7 @@ Future<void> configureDependencies() async {
   );
   
   getIt.registerFactory<PlayerBloc>(
-    () => PlayerBloc(),
+    () => PlayerBloc(videoRepository: getIt<VideoRepository>()),
   );
   
   getIt.registerFactory<NavigationBloc>(
